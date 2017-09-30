@@ -210,11 +210,15 @@ glob(getPath('../src/tools/**/metas.yml'), {}, function (err, files) {
   let rs = []
   files.forEach(function (file) {
     const name = file.split('tools/')[1].replace('/metas.yml', '')
-    const json = yaml.safeLoad(fs.readFileSync(file, 'utf-8'))
-    rs.push({
-      name: name,
-      metas: json
-    })
+    try {
+      const json = yaml.safeLoad(fs.readFileSync(file, 'utf-8'))
+      rs.push({
+        name: name,
+        metas: json
+      })
+    } catch (e) {
+      console.log('yml 出错')
+    }
   })
   fs.writeFileSync(getPath('../src/tools/changes.json'), JSON.stringify(rs, null, 2))
 })
@@ -268,7 +272,13 @@ function render(files, tag) {
 
     const name = getComponentName(file)
     const content = fs.readFileSync(file, 'utf-8')
-    const json = yaml.safeLoad(content)
+    let json = {}
+
+    try {
+      json = yaml.safeLoad(content)
+    } catch (e) {
+      console.log('错误', e)
+    }
     let rs = {
       name: name,
       importName: _camelCase(name),
@@ -524,13 +534,13 @@ function getComponentInfo(one, lang, docs, name) {
   if (one.events) {
     // slot title
     docs += `\n<span class="vux-props-title">Events</span>\n`
-    docs += `\n| ${t('名字')}    | ${t('参数')}   | ${t('说明')} |
-|-------|-------|-------|
+    docs += `\n| ${t('名字')}    | ${t('参数')}   | ${t('说明')} | ${t('版本')} |
+|-------|-------|-------|-------|
 `
     for (let i in one.events) {
       let intro = one.events[i][lang]
       let params = one.events[i]['params']
-      docs += `| ${getKeyHTML(i)} |   ${params || '&nbsp;'} | ${intro} |\n`
+      docs += `| ${getKeyHTML(i)} |   ${params || '&nbsp;'} | ${intro} | ${getVersion(one.events[i].version)} |\n`
     }
   }
 

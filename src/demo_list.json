@@ -107,5 +107,8 @@
   "Drawer",
   "DatetimeView",
   "InlineXNumber",
-  "PopupHeader"
+  "PopupHeader",
+  "InlineCalendarMulti#/demo/inline-calendar-multi",
+  "XImgPopup#/demo/x-img-popup",
+  "WeekCalendar"
 ]

@@ -1,7 +1,7 @@
 <template>
-  <div class="vux-x-dialog" @touchmove="onTouchMove">
+  <div class="vux-x-dialog">
     <transition :name="maskTransition">
-      <div class="weui-mask" @click="hide" v-show="show"></div>
+      <div class="weui-mask" @click="hide" v-show="show" :style="maskStyle"></div>
     </transition>
     <transition :name="dialogTransition">
       <div :class="dialogClass" v-show="show" :style="dialogStyle">
@@ -12,7 +12,10 @@
 </template>
 
 <script>
+import preventBodyScrollMixin from '../../mixins/prevent-body-scroll'
+
 export default {
+  mixins: [preventBodyScrollMixin],
   name: 'x-dialog',
   model: {
     prop: 'show',
@@ -27,6 +30,7 @@ export default {
       type: String,
       default: 'vux-mask'
     },
+    maskZIndex: [String, Number],
     dialogTransition: {
       type: String,
       default: 'vux-dialog'
@@ -39,19 +43,36 @@ export default {
     dialogStyle: Object,
     scroll: {
       type: Boolean,
-      default: true
+      default: true,
+      validator (val) {
+        if (process.env.NODE_ENV === 'development' && val === false) {
+          console.warn('[VUX warn] x-dialog:scroll 已经废弃。如果你是 100% 布局，请参照文档配置 $layout 以实现阻止滚动')
+        }
+        return true
+      }
+    }
+  },
+  computed: {
+    maskStyle () {
+      if (typeof this.maskZIndex !== 'undefined') {
+        return {
+          zIndex: this.maskZIndex
+        }
+      }
     }
   },
   watch: {
     show (val) {
       this.$emit('update:show', val)
       this.$emit(val ? 'on-show' : 'on-hide')
+      if (val) {
+        this.addModalClassName()
+      } else {
+        this.removeModalClassName()
+      }
     }
   },
   methods: {
-    onTouchMove (event) {
-      !this.scroll && event.preventDefault()
-    },
     hide () {
       if (this.hideOnBlur) {
         this.$emit('update:show', false)

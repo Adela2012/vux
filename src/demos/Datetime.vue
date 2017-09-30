@@ -2,7 +2,7 @@
   <div>
 
     <div style="padding:15px;">
-      <x-button type="primary" plain @click.native="showPlugin">{{ $t('Used as a plugin(Hide in 2s)') }}</x-button>
+      <x-button type="primary" plain @click.native="showPlugin">{{ $t('Used as a plugin') }}</x-button>
     </div>
 
     <group :title="$t('default format: YYYY-MM-DD')">
@@ -14,7 +14,7 @@
     </group>
 
     <group :title="$t('custom hour list')">
-      <datetime v-model="hourListValue" format="YYYY-MM-DD HH:mm" :hour-list="['09', '10', '11', '12', '2', '3', '4', '5']" :minute-list="['00', '15', '30', '45']" @on-change="change" :title="$t('Birthday')"></datetime>
+      <datetime v-model="hourListValue" format="YYYY-MM-DD HH:mm" :hour-list="['09', '10', '11', '12', '13', '14', '15', '16']" :minute-list="['00', '15', '30', '45']" @on-change="change" :title="$t('Birthday')"></datetime>
     </group>
 
     <group title="readonly">
@@ -62,6 +62,14 @@
     
     <group :title="$t('set min-year and max-year')">
       <datetime v-model="value4" :placeholder="$t('Please select')" :min-year=2000 :max-year=2016 format="YYYY-MM-DD HH:mm" @on-change="change" :title="$t('years after 2000')"></datetime>
+    </group>
+
+    <group :title="$t('prop:compute-hours-function')">
+      <datetime format="YYYY-MM-DD HH" v-model="computeHoursValue" :compute-hours-function="computeHoursFunction" :title="$t('Birthday')"></datetime>
+    </group>
+
+    <group :title="$t('prop:compute-days-function')">
+      <datetime format="YYYY-MM-DD HH" v-model="computeDaysValue" :compute-days-function="computeDaysFunction" :title="$t('Birthday')"></datetime>
     </group>
 
     <group :title="$t('specified template text in Chinese')">
@@ -144,10 +152,14 @@ custom hour list:
   zh-CN: 定义小时列表
 'use prop:show.sync(vue^2.3) to control visibility':
   zh-CN: 使用 prop:show 控制显示(vue^2.3)
-Used as a plugin(Hide in 2s):
+Used as a plugin:
   zh-CN: 插件形式调用
 set default-selected-value to 2017-11-11:
   zh-CN: 设置默认选中值为 2017-11-11
+'prop:compute-hours-function':
+  zh-CN: 自定义小时列表生成逻辑
+'prop:compute-days-function':
+  zh-CN: 自定义日期列表生成逻辑
 </i18n>
 
 <script>
@@ -183,7 +195,19 @@ export default {
         return val.replace(/-/g, '$')
       },
       value9: '',
-      visibility: false
+      visibility: false,
+      computeHoursValue: '',
+      computeDaysValue: '',
+      computeHoursFunction (date, isToday, generateRange) {
+        if (isToday) {
+          return generateRange(new Date().getHours(), 23)
+        } else {
+          return generateRange(0, 23)
+        }
+      },
+      computeDaysFunction (options, generateRange) {
+        return [options.month] // if current month is n, days are [n]
+      }
     }
   },
   methods: {

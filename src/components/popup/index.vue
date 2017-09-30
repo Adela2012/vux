@@ -8,6 +8,7 @@
 
 <script>
 import Popup from './popup'
+import dom from '../../libs/dom'
 
 export default {
   name: 'popup',
@@ -35,7 +36,17 @@ export default {
       default: 'bottom'
     },
     maxHeight: String,
-    popupStyle: Object
+    popupStyle: Object,
+    hideOnDeactivated: {
+      type: Boolean,
+      default: true
+    }
+  },
+  created () {
+    // get global layout config
+    if (this.$vux && this.$vux.config && this.$vux.config.$layout === 'VIEW_BOX') {
+      this.layout = 'VIEW_BOX'
+    }
   },
   mounted () {
     this.$overflowScrollingList = document.querySelectorAll('.vux-fix-safari-overflow-scrolling')
@@ -64,6 +75,12 @@ export default {
       this.initialShow = false
     })
   },
+  deactivated () {
+    if (this.hideOnDeactivated) {
+      this.show = false
+    }
+    this.removeModalClassName()
+  },
   methods: {
     /**
     * https://github.com/airyland/vux/issues/311
@@ -75,10 +92,14 @@ export default {
       for (let i = 0; i < this.$overflowScrollingList.length; i++) {
         this.$overflowScrollingList[i].style.webkitOverflowScrolling = type
       }
+    },
+    removeModalClassName () {
+      this.layout === 'VIEW_BOX' && dom.removeClass(document.body, 'vux-modal-open')
     }
   },
   data () {
     return {
+      layout: '',
       initialShow: true,
       hasFirstShow: false,
       show: this.value
@@ -116,6 +137,7 @@ export default {
         this.popup && this.popup.show()
         this.$emit('on-show')
         this.fixSafariOverflowScrolling('auto')
+        this.layout === 'VIEW_BOX' && dom.addClass(document.body, 'vux-modal-open')
         if (!this.hasFirstShow) {
           this.$emit('on-first-show')
           this.hasFirstShow = true
@@ -128,6 +150,7 @@ export default {
           if (!document.querySelector('.vux-popup-dialog.vux-popup-show')) {
             this.fixSafariOverflowScrolling('touch')
           }
+          this.removeModalClassName()
         }, 200)
       }
     }
@@ -135,6 +158,7 @@ export default {
   beforeDestroy () {
     this.popup.destroy()
     this.fixSafariOverflowScrolling('touch')
+    this.removeModalClassName()
   }
 }
 </script>
@@ -209,5 +233,11 @@ export default {
 
 .vux-popup-animate-top-enter, .vux-popup-animate-top-leave-active {
   transform: translate3d(0, -100%, 0);
+}
+
+.vux-modal-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
 }
 </style>

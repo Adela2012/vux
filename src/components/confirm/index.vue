@@ -6,12 +6,16 @@
     :mask-transition="maskTransition"
     :dialog-transition="theme === 'android' ? 'vux-fade' : dialogTransition"
     :hide-on-blur="hideOnBlur"
-    @on-hide="$emit('on-hide')"
-    @on-show="$emit('on-show')">
-      <div class="weui-dialog__hd" v-if="!!title"><strong class="weui-dialog__title">{{title}}</strong></div>
-      <div class="weui-dialog__bd" v-if="!showInput"><slot><div v-html="content"></div></slot></div>
+    :mask-z-index="maskZIndex"
+    @on-hide="$emit('on-hide')">
+      <div class="weui-dialog__hd" v-if="!!title">
+        <strong class="weui-dialog__title">{{ title }}</strong>
+      </div>
+      <div class="weui-dialog__bd" v-if="!showInput">
+        <slot><div v-html="content"></div></slot>
+      </div>
       <div v-else class="vux-prompt">
-        <input class="vux-prompt-msgbox" v-model="msg" :placeholder="placeholder" ref="input"/>
+        <input class="vux-prompt-msgbox" v-bind="inputAttrs" v-model="msg" :placeholder="placeholder" ref="input"/>
       </div>
       <div class="weui-dialog__ft">
         <a href="javascript:;" class="weui-dialog__btn weui-dialog__btn_default" @click="_onCancel">{{cancelText || $t('cancel_text')}}</a>
@@ -65,6 +69,7 @@ export default {
       type: String,
       default: 'vux-fade'
     },
+    maskZIndex: [Number, String],
     dialogTransition: {
       type: String,
       default: 'vux-dialog'
@@ -73,7 +78,8 @@ export default {
     closeOnConfirm: {
       type: Boolean,
       default: true
-    }
+    },
+    inputAttrs: Object
   },
   created () {
     this.showValue = this.show
@@ -87,13 +93,16 @@ export default {
     },
     showValue (val) {
       this.$emit('input', val)
-      if (val && this.showInput) {
-        this.msg = ''
-        setTimeout(() => {
-          if (this.$refs.input) {
-            this.$refs.input.focus()
-          }
-        }, 300)
+      if (val) {
+        if (this.showInput) {
+          this.msg = ''
+          setTimeout(() => {
+            if (this.$refs.input) {
+              this.$refs.input.focus()
+            }
+          }, 300)
+        }
+        this.$emit('on-show') // emit just after msg is cleared
       }
     }
   },
@@ -104,13 +113,22 @@ export default {
     }
   },
   methods: {
+    setInputValue (val) {
+      this.msg = val
+    },
     _onConfirm () {
+      if (!this.showValue) {
+        return
+      }
       if (this.closeOnConfirm) {
         this.showValue = false
       }
       this.$emit('on-confirm', this.msg)
     },
     _onCancel () {
+      if (!this.showValue) {
+        return
+      }
       this.showValue = false
       this.$emit('on-cancel')
     }

@@ -1,8 +1,22 @@
 <template>
   <div>
-    <cell :title="title" primary="content" :value="currentValue" @click.native="onClick" is-link></cell>
+    <cell :title="title" primary="content" @click.native="onClick" is-link>
+      <span class="vux-cell-placeholder" v-if="shouldShowPlaceholder">{{ placeholder }}</span>
+      <span class="vux-cell-value" v-if="showValue">{{ displayFormat(showValue, getType(showValue)) }}</span>
+    </cell>
     <div v-transfer-dom>
       <popup v-model="show">
+
+        <popup-header
+        v-if="showPopupHeader || getType(value) === 'array'"
+        @on-click-left="onClickLeft"
+        @on-click-right="onClickRight"
+        :title="popupHeaderTitle"
+        :left-text="$t('cancel_text')"
+        :right-text="$t('confirm_text')"></popup-header>
+
+        <slot name="popup-before-calendar"></slot>
+
         <inline-calendar
         v-model="currentValue"
         @on-change="onSelect"
@@ -22,10 +36,20 @@
         :disable-past="disablePast"
         :disable-future="disableFuture"
         ></inline-calendar>
+
       </popup>
     </div>
   </div>
 </template>
+
+<i18n>
+cancel_text:
+  en: cancel
+  zh-CN: 取消
+confirm_text:
+  en: done
+  zh-CN: 确定
+</i18n>
 
 <script>
 import InlineCalendar from '../inline-calendar'
@@ -33,11 +57,42 @@ import Popup from '../popup'
 import Cell from '../cell'
 import props from '../inline-calendar/props'
 import TransferDom from '../../directives/transfer-dom'
+import PopupHeader from '../popup-header'
+import format from '../../tools/date/format'
 
-const Props = props()
-Props.title = {
-  type: String,
-  required: true
+const getType = (value) => {
+  if (typeof value === 'string') {
+    return 'string'
+  }
+  if (Object.prototype.toString.call(value) === '[object Array]') {
+    return 'array'
+  }
+}
+
+const pure = function (value) {
+  const type = getType(value)
+  if (type === 'string') {
+    return value
+  } else if (type === 'array') {
+    return JSON.parse(JSON.stringify(value))
+  }
+}
+
+const Props = {
+  ...props(),
+  title: {
+    type: String,
+    required: true
+  },
+  placeholder: String,
+  showPopupHeader: Boolean,
+  popupHeaderTitle: String,
+  displayFormat: {
+    type: Function,
+    default: (value) => {
+      return typeof value === 'string' ? value : value.join(', ')
+    }
+  }
 }
 
 export default {
@@ -48,19 +103,55 @@ export default {
   components: {
     InlineCalendar,
     Popup,
+    PopupHeader,
     Cell
   },
+  computed: {
+    shouldShowPlaceholder () {
+      if (typeof this.showValue === 'string' && !this.showValue) {
+        return true
+      }
+      if (getType(this.showValue) === 'array' && !this.showValue.length) {
+        return true
+      }
+      return false
+    }
+  },
   created () {
-    this.currentValue = this.value
+    if (this.value === 'TODAY') {
+      this.currentValue = this.showValue = this.tempValue = format(new Date(), 'YYYY-MM-DD')
+      this.$emit('input', this.currentValue)
+      this.$emit('on-change', this.currentValue)
+    } else {
+      this.currentValue = this.tempValue = this.value
+      this.showValue = pure(this.currentValue)
+    }
   },
   props: Props,
   methods: {
+    getType,
+    onClickLeft () {
+      this.currentValue = pure(this.showValue)
+      this.show = false
+    },
+    onClickRight () {
+      this.show = false
+      if (this.tempValue) {
+        this.showValue = pure(this.tempValue)
+        this.$emit('input', this.tempValue)
+        this.$emit('on-change', this.tempValue)
+      }
+    },
     onClick () {
       this.show = true
     },
     onSelect (val) {
-      this.show = false
-      this.currentValue = val
+      if (!this.showPopupHeader && getType(this.value) !== 'array') {
+        this.show = false
+        this.showValue = pure(val)
+      } else {
+        this.tempValue = pure(val)
+      }
     }
   },
   watch: {
@@ -68,14 +159,18 @@ export default {
       this.currentValue = val
     },
     currentValue (val) {
-      this.$emit('input', val)
-      this.$emit('on-change', val)
+      if (!this.showPopupHeader) {
+        this.$emit('input', val)
+        this.$emit('on-change', val)
+      }
     }
   },
   data () {
     return {
       show: false,
-      currentValue: ''
+      currentValue: '',
+      tempValue: '',
+      showValue: ''
     }
   }
 }

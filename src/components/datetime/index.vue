@@ -8,12 +8,20 @@
     <slot>
       <div>
         <slot name="title">
-          <p :style="{width: $parent.labelWidth, textAlign: $parent.labelAlign, marginRight: $parent.labelMarginRight}" :class="labelClass" v-html="title"></p>
+          <p
+          :style="{
+            width: $parent.labelWidth,
+            textAlign: $parent.labelAlign,
+            marginRight: $parent.labelMarginRight
+          }"
+          :class="labelClass"
+          v-html="title"></p>
         </slot>
-        <inline-desc v-if="inlineDesc">{{inlineDesc}}</inline-desc>
+        <inline-desc v-if="inlineDesc">{{ inlineDesc }}</inline-desc>
       </div>
       <div class="weui-cell__ft vux-cell-primary vux-datetime-value" :style="{textAlign: valueTextAlign}">
-        {{ _value }}
+        <span class="vux-cell-placeholder" v-if="!currentValue && placeholder">{{ placeholder }}</span>
+        <span class="vux-cell-value" v-if="currentValue">{{ displayFormat ? displayFormat(currentValue) : currentValue }}</span>
         <icon class="vux-input-icon" type="warn" v-show="!valid" :title="firstError"></icon>
       </div>
     </slot>
@@ -94,15 +102,33 @@ export default {
       type: Number,
       default: 23
     },
-    startDate: String,
-    endDate: String,
+    startDate: {
+      type: String,
+      validator (val) {
+        if (process.env.NODE_ENV === 'development' && val && val.length !== 10) {
+          console.error('[VUX] Datetime prop:start-date 必须为 YYYY-MM-DD 格式')
+        }
+        return val ? val.length === 10 : true
+      }
+    },
+    endDate: {
+      type: String,
+      validator (val) {
+        if (process.env.NODE_ENV === 'development' && val && val.length !== 10) {
+          console.error('[VUX] Datetime prop:end-date 必须为 YYYY-MM-DD 格式')
+        }
+        return val ? val.length === 10 : true
+      }
+    },
     valueTextAlign: String,
     displayFormat: Function,
     readonly: Boolean,
     hourList: Array,
     minuteList: Array,
     show: Boolean,
-    defaultSelectedValue: String
+    defaultSelectedValue: String,
+    computeHoursFunction: Function,
+    computeDaysFunction: Function
   },
   created () {
     this.isFirstSetValue = false
@@ -125,13 +151,6 @@ export default {
     }
   },
   computed: {
-    _value () {
-      if (!this.currentValue) {
-        return this.placeholder || ''
-      } else {
-        return this.displayFormat ? this.displayFormat(this.currentValue) : this.currentValue
-      }
-    },
     pickerOptions () {
       const _this = this
       const options = {
@@ -154,6 +173,8 @@ export default {
         hourList: this.hourList,
         minuteList: this.minuteList,
         defaultSelectedValue: this.defaultSelectedValue,
+        computeHoursFunction: this.computeHoursFunction,
+        computeDaysFunction: this.computeDaysFunction,
         onSelect (type, val, wholeValue) {
           if (_this.picker && _this.picker.config.renderInline) {
             _this.$emit('input', wholeValue)
@@ -201,7 +222,11 @@ export default {
       } else if (type === 'confirm' && this.confirmText) {
         return this.confirmText
       }
-      return this.$el.getAttribute(`data-${type}-text`)
+      if (this.$t) {
+        return this.$t(`vux.datetime.${type}_text`)
+      } else {
+        return this.$el.getAttribute(`data-${type}-text`)
+      }
     },
     render () {
       this.$nextTick(() => {
@@ -230,6 +255,8 @@ export default {
     show (val) {
       if (val) {
         this.picker && this.picker.show(this.currentValue)
+      } else {
+        this.picker && this.picker.hide(this.currentValue)
       }
     },
     currentValue (val, oldVal) {

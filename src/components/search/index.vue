@@ -122,6 +122,7 @@ export default {
     },
     setBlur () {
       this.$refs.input.blur()
+      this.$emit('on-blur')
     },
     onFocus () {
       this.isFocus = true
@@ -184,7 +185,13 @@ export default {
 .weui-cells.vux-search_show {
   margin-top: 0!important;
   overflow-y: auto;
-  max-height: 400px;
+  position: fixed;
+  width: 100%;
+  max-height: 100%;
+
+  .weui-cell:last-child {
+    margin-bottom: 150px;
+  }
 
   &::-webkit-scrollbar {
     display: none;

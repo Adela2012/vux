@@ -12,9 +12,10 @@ const TEMPLATE = `
   <div class="scroller-content" data-role="content"></div>
 </div>
 `
-
+const dpr = document.documentElement.getAttribute('data-dpr') || 1
 const Animate = require('./animate')
 const { getElement, getComputedStyle, easeOutCubic, easeInOutCubic } = require('./util')
+const passiveSupported = require('../../libs/passive_supported')
 
 var Scroller = function (container, options) {
   var self = this
@@ -61,7 +62,9 @@ var Scroller = function (container, options) {
   self.__itemHeight = parseFloat(getComputedStyle(indicator, 'height'), 10)
 
   self.__callback = options.callback || function (top) {
-    content.style.webkitTransform = 'translate3d(0, ' + (-top) + 'px, 0)'
+    const distance = -top * dpr
+    content.style.webkitTransform = 'translate3d(0, ' + distance + 'px, 0)'
+    content.style.transform = 'translate3d(0, ' + distance + 'px, 0)'
   }
 
   var rect = component.getBoundingClientRect()
@@ -91,14 +94,17 @@ var Scroller = function (container, options) {
     self.__doTouchEnd(e.timeStamp)
   }
 
-  component.addEventListener('touchstart', touchStartHandler, false)
-  component.addEventListener('mousedown', touchStartHandler, false)
+  const willPreventDefault = passiveSupported ? {passive: false} : false
+  const willNotPreventDefault = passiveSupported ? {passive: true} : false
 
-  component.addEventListener('touchmove', touchMoveHandler, false)
-  component.addEventListener('mousemove', touchMoveHandler, false)
+  component.addEventListener('touchstart', touchStartHandler, willPreventDefault)
+  component.addEventListener('mousedown', touchStartHandler, willPreventDefault)
 
-  component.addEventListener('touchend', touchEndHandler, false)
-  component.addEventListener('mouseup', touchEndHandler, false)
+  component.addEventListener('touchmove', touchMoveHandler, willNotPreventDefault)
+  component.addEventListener('mousemove', touchMoveHandler, willNotPreventDefault)
+
+  component.addEventListener('touchend', touchEndHandler, willNotPreventDefault)
+  component.addEventListener('mouseup', touchEndHandler, willNotPreventDefault)
 }
 
 var members = {
